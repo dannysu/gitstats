@@ -47,7 +47,8 @@ conf = {
 	'linear_linestats': 1,
 	'project_name': '',
 	'processes': 8,
-	'start_date': ''
+	'start_date': '',
+	'pathspec': ''
 }
 
 def getpipeoutput(cmds, quiet = False):
@@ -536,7 +537,7 @@ class GitDataCollector(DataCollector):
 		extra = ''
 		if conf['linear_linestats']:
 			extra = '--first-parent -m'
-		lines = getpipeoutput(['git log --shortstat %s --pretty=format:"%%at %%aN" %s' % (extra, getlogrange('HEAD'))]).split('\n')
+		lines = getpipeoutput(['git log --shortstat %s --pretty=format:"%%at %%aN" %s %s' % (extra, getlogrange('HEAD'), conf['pathspec'])]).split('\n')
 		lines.reverse()
 		files = 0; inserted = 0; deleted = 0; total_lines = 0
 		author = None
@@ -590,7 +591,7 @@ class GitDataCollector(DataCollector):
 		# Similar to the above, but never use --first-parent
 		# (we need to walk through every commit to know who
 		# committed what, not just through mainline)
-		lines = getpipeoutput(['git log --shortstat --date-order --pretty=format:"%%at %%aN" %s' % (getlogrange('HEAD'))]).split('\n')
+		lines = getpipeoutput(['git log --shortstat --date-order --pretty=format:"%%at %%aN" %s %s' % (getlogrange('HEAD'), conf['pathspec'])]).split('\n')
 		lines.reverse()
 		files = 0; inserted = 0; deleted = 0
 		author = None
@@ -637,6 +638,8 @@ class GitDataCollector(DataCollector):
 	def refine(self):
 		# authors
 		# name -> {place_by_commits, commits_frac, date_first, date_last, timedelta}
+		for i, name in enumerate(self.authors):
+			self.authors[name].setdefault('commits', 0)
 		self.authors_by_commits = getkeyssortedbyvaluekey(self.authors, 'commits')
 		self.authors_by_commits.reverse() # most first
 		for i, name in enumerate(self.authors_by_commits):
